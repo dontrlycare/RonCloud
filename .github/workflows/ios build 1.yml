@@ -1,0 +1,50 @@
+name: iOS Build
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: "latest"
+    
+    - name: Create App Bundle
+      run: |
+        mkdir -p Payload/RonCloud.app
+        cp -r * Payload/RonCloud.app/
+        rm -rf Payload/RonCloud.app/Payload
+        
+        cat > Payload/RonCloud.app/Info.plist << "EOL"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleIdentifier</key>
+            <string>com.roncloud.app</string>
+            <key>CFBundleExecutable</key>
+            <string>RonCloud</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>CFBundleVersion</key>
+            <string>1</string>
+            <key>MinimumOSVersion</key>
+            <string>14.0</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSRequiresIPhoneOS</key>
+            <true/>
+        </dict>
+        </plist>
+        EOL
+        
+        zip -r RonCloud.ipa Payload
+        
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: RonCloud
+        path: RonCloud.ipa
