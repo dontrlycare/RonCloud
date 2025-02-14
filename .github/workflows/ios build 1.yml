@@ -10,15 +10,37 @@ jobs:
     - name: Set up Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: "latest"
+        xcode-version: 'latest'
+    
+    - name: Compile Swift Files
+      run: |
+        # Создаем папку для бинарных файлов
+        mkdir -p build
+        
+        # Компилируем Swift файлы в исполняемый файл для iOS
+        xcrun -sdk iphoneos swiftc \
+          -target arm64-apple-ios14.0 \
+          -emit-executable \
+          -o build/RonCloud \
+          RonCloudApp.swift \
+          Views/*.swift \
+          Models/*.swift \
+          ViewModels/*.swift \
+          Extensions/*.swift
+        
+        # Подписываем бинарный файл
+        codesign -f -s - build/RonCloud
     
     - name: Create App Bundle
       run: |
         mkdir -p Payload/RonCloud.app
-        cp -r * Payload/RonCloud.app/
-        rm -rf Payload/RonCloud.app/Payload
         
-        cat > Payload/RonCloud.app/Info.plist << "EOL"
+        # Копируем скомпилированный бинарный файл
+        cp build/RonCloud Payload/RonCloud.app/
+        chmod +x Payload/RonCloud.app/RonCloud
+        
+        # Создаем Info.plist
+        cat > Payload/RonCloud.app/Info.plist << 'EOL'
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -37,14 +59,30 @@ jobs:
             <string>APPL</string>
             <key>LSRequiresIPhoneOS</key>
             <true/>
+            <key>UILaunchStoryboardName</key>
+            <string>Launch</string>
+            <key>UIRequiredDeviceCapabilities</key>
+            <array>
+                <string>arm64</string>
+            </array>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+                <string>UIInterfaceOrientationPortrait</string>
+            </array>
+            <key>UIApplicationSceneManifest</key>
+            <dict>
+                <key>UIApplicationSupportsMultipleScenes</key>
+                <true/>
+            </dict>
         </dict>
         </plist>
         EOL
         
+        # Создаем IPA
         zip -r RonCloud.ipa Payload
         
     - name: Upload IPA
       uses: actions/upload-artifact@v4
       with:
         name: RonCloud
-        path: RonCloud.ipa
+        path: RonCloud.ipa 
